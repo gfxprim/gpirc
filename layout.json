@@ -1,0 +1,14 @@
+{
+ "version": 1,
+ "rows": 3,
+ "align": "fill",
+ "rfill": "0, 1, 0",
+ "widgets": [
+  {"widgets": [{"type": "label", "text": "gpirc", "align": "hfill", "uid": "topic", "tattr": "left|mono"}], "halign": "fill", "frame": true, "border": "horiz"},
+  {"type": "tabs", "uid": "channel_tabs", "labels": ["status"], "align": "fill",
+   "widgets": [
+    {"type": "log", "align": "fill", "uid": "status_log", "tattr": "mono"}
+   ]},
+  {"type": "tbox", "text": "", "align": "hfill", "on_event": "cmdline"}
+ ]
+}

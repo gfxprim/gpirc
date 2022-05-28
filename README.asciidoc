@@ -1,0 +1,9 @@
+IRC Client
+==========
+
+An IRC client written using libircclient and gfxprim widgets.
+
+Current status
+==============
+
+Work-in-progress most of the basic stuff works though.
