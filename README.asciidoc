@@ -7,3 +7,5 @@ Current status
 ==============
 
 Work-in-progress most of the basic stuff works though.
+
+image::https://raw.githubusercontent.com/gfxprim/gpirc/master/gpirc.png["Screenshot"]
