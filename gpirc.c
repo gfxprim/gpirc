@@ -31,12 +31,13 @@ struct channel {
 static struct irc_conf {
 	char *server;
 	int port;
-	char *channel;
+	char *chan;
+	char *chan_pass;
 	char *nick;
 } irc_conf = {
 	.server = "irc.libera.chat",
 	.port = 6667,
-	.channel = "#test-channel",
+	.chan = "#test-channel",
 };
 
 static void status_log_append(const char *msg)
@@ -182,13 +183,13 @@ static int channels_is_status_log(gp_widget *self)
 	return self == status_log;
 }
 
-static void channels_join(const char *name)
+static void channels_join(const char *name, const char *pass)
 {
 	status_log_printf("Joining channel '%s'", name);
 
 	channels_add(name);
 
-	irc_cmd_join(irc_session, name, 0);
+	irc_cmd_join(irc_session, name, pass);
 }
 
 static void chan_add_nick(const char *chan_name, const char *nick)
@@ -243,7 +244,7 @@ static void chan_print_nicks(const char *chan_name)
 	if (!chan)
 		return;
 
-	channels_printf(chan_name, "[Users %s]", chan_name);
+	channels_printf(chan_name, "-!- [Users %s]", chan_name);
 
 	char *nicks = gp_vec_str_new();
 
@@ -253,13 +254,18 @@ static void chan_print_nicks(const char *chan_name)
 	int first = 1;
 
 	GP_VEC_FOREACH(chan->nicks, char *, nick) {
+		char *append = "[ ";
 		if (!first)
 			GP_VEC_STR_APPEND(nicks, " ");
 		first = 0;
+		if (*nick[0] == '@')
+			append = "[";
+		GP_VEC_STR_APPEND(nicks, append);
 		GP_VEC_STR_APPEND(nicks, *nick);
+		GP_VEC_STR_APPEND(nicks, "]");
 	}
 
-	channels_printf(chan_name, "[%s]", nicks);
+	channels_printf(chan_name, "-!- %s", nicks);
 
 	gp_vec_free(nicks);
 }
@@ -308,7 +314,7 @@ static void event_connect(irc_session_t *session, const char *event,
 	(void) params;
 	(void) count;
 
-	channels_join(irc_conf->channel);
+	channels_join(irc_conf->chan, irc_conf->chan_pass);
 }
 
 static void event_join(irc_session_t *session, const char *event,
@@ -325,7 +331,7 @@ static void event_join(irc_session_t *session, const char *event,
 
 	irc_target_get_nick(origin, nick, sizeof(nick));
 
-	channels_printf(params[0], "%s [%s] has joined %s", nick, origin, params[0]);
+	channels_printf(params[0], "-!- %s [%s] has joined %s", nick, origin, params[0]);
 
 	if (strcmp(nick, irc_conf.nick))
 		chan_add_nick(params[0], nick);
@@ -414,7 +420,7 @@ static void event_topic(irc_session_t *session, const char *event,
 
 	irc_target_get_nick(origin, nick, sizeof(nick));
 
-	channels_printf(params[0], "%s changed topic to '%s'", nick, params[1]);
+	channels_printf(params[0], "-!- %s changed topic to '%s'", nick, params[1]);
 }
 
 static uint32_t poll_irc(gp_timer *self)
@@ -484,6 +490,22 @@ static void retry_with_new_nick(void)
 	irc_cmd_nick(irc_session, irc_conf.nick);
 }
 
+static void print_topic_who_time(const char *chan,
+                                 const char *who, const char *time)
+{
+	time_t timestamp = atoi(time);
+	struct tm *tm_time = localtime(&timestamp);
+	char str_time[80];
+	char nick[128];
+
+	if (!strftime(str_time, sizeof(str_time), "%a %b %d %H:%M:%S %Y", tm_time))
+		str_time[0] = 0;
+
+	irc_target_get_nick(who, nick, sizeof(nick));
+
+	channels_printf(chan, "-!- Topic set by %s [%s] [%s]", nick, who, str_time);
+}
+
 static void event_numeric(irc_session_t *session, unsigned int event,
                           const char *origin, const char **params,
                           unsigned int count)
@@ -516,6 +538,7 @@ static void event_numeric(irc_session_t *session, unsigned int event,
 
 		if (count >= 3)
 			status_log_printf("%s %s", params[1], params[2]);
+
 	break;
 	case LIBIRC_RFC_RPL_BOUNCE:
 	case LIBIRC_RFC_RPL_MYINFO:
@@ -534,7 +557,13 @@ static void event_numeric(irc_session_t *session, unsigned int event,
 		if (count < 3)
 			return;
 		chan_set_topic(params[1], params[2]);
-		channels_printf(params[1], "Topic set by %s: %s", params[0], params[2]);
+		channels_printf(params[1], "-!- Topic for %s: %s", params[1], params[2]);
+	break;
+	/* RPL_TOPICWHOTIME */
+	case 333:
+		if (count < 3)
+			return;
+		print_topic_who_time(params[1], params[2], params[3]);
 	break;
 	case LIBIRC_RFC_ERR_CHANOPRIVSNEEDED:
 		channels_printf(params[1], "%s %s", params[1], params[2]);
@@ -573,12 +602,29 @@ static void cmd_wc(gp_widget *self, const char *pars)
 
 static void cmd_join(gp_widget *self, const char *pars)
 {
+	const char *pass, *chan = pars;
+	char tmp[128];
+
 	if (!pars[0]) {
 		gp_widget_log_append(self, "/join requires parameter");
 		return;
 	}
 
-	channels_join(pars);
+	pass = strchr(pars, ' ');
+	if (pass) {
+		size_t len = pass - pars;
+
+		if (len > sizeof(tmp) - 1) {
+			gp_widget_log_append(self, "/join channel name too long");
+			return;
+		}
+
+		strncpy(tmp, pars, len);
+		tmp[len] = 0;
+		chan = tmp;
+	}
+
+	channels_join(chan, pass);
 }
 
 static void cmd_topic(gp_widget *self, const char *pars)
