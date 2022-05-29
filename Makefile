@@ -8,6 +8,8 @@ all: $(DEP) $(BIN)
 %.dep: %.c
 	$(CC) $(CFLAGS) -M $< -o $@
 
+$(BIN): gpirc_conf.o
+
 -include $(DEP)
 
 install:

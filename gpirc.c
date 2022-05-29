@@ -6,12 +6,13 @@
 
  */
 
-#include <pwd.h>
 #include <libircclient/libircclient.h>
 #include <libircclient/libirc_rfcnumeric.h>
 #include <utils/gp_vec.h>
 #include <utils/gp_vec_str.h>
 #include <widgets/gp_widgets.h>
+
+#include "gpirc_conf.h"
 
 static irc_session_t *irc_session;
 static gp_widget *status_log;
@@ -26,18 +27,6 @@ struct channel {
 	char *topic;
 	//FIXME Hash table? Trie?
 	char **nicks;
-};
-
-static struct irc_conf {
-	char *server;
-	int port;
-	char *chan;
-	char *chan_pass;
-	char *nick;
-} irc_conf = {
-	.server = "irc.libera.chat",
-	.port = 6667,
-	.chan = "#test-channel",
 };
 
 static void status_log_append(const char *msg)
@@ -307,14 +296,18 @@ static void event_connect(irc_session_t *session, const char *event,
                           const char *origin, const char **params,
                           unsigned int count)
 {
-	struct irc_conf *irc_conf = irc_get_ctx(session);
+	struct gpirc_conf *conf = irc_get_ctx(session);
 
 	(void) event;
 	(void) origin;
 	(void) params;
 	(void) count;
 
-	channels_join(irc_conf->chan, irc_conf->chan_pass);
+	if (!conf->chans)
+		return;
+
+	GP_VEC_FOREACH(gpirc_conf.chans, struct gpirc_chan, chan)
+		channels_join(chan->chan, chan->pass);
 }
 
 static void event_join(irc_session_t *session, const char *event,
@@ -333,7 +326,7 @@ static void event_join(irc_session_t *session, const char *event,
 
 	channels_printf(params[0], "-!- %s [%s] has joined %s", nick, origin, params[0]);
 
-	if (strcmp(nick, irc_conf.nick))
+	if (strcmp(nick, gpirc_conf.nick))
 		chan_add_nick(params[0], nick);
 }
 
@@ -452,9 +445,13 @@ static void do_connect(void)
 {
 	int ret;
 
-	status_log_printf("Connecting to %s port %i", irc_conf.server, irc_conf.port);
+	if (!gpirc_conf.server)
+		return;
 
-	ret = irc_connect(irc_session, irc_conf.server, irc_conf.port, 0, irc_conf.nick, 0, 0);
+	status_log_printf("Connecting as %s to %s port %i",
+	                  gpirc_conf.nick, gpirc_conf.server, gpirc_conf.port);
+
+	ret = irc_connect(irc_session, gpirc_conf.server, gpirc_conf.port, 0, gpirc_conf.nick, 0, 0);
 	if (!ret) {
 		gp_widgets_timer_ins(&poll_timer);
 		return;
@@ -484,10 +481,10 @@ static int str_append(char **str, const char *suf)
 
 static void retry_with_new_nick(void)
 {
-	if (str_append(&irc_conf.nick, "_"))
+	if (str_append(&gpirc_conf.nick, "_"))
 		return;
 
-	irc_cmd_nick(irc_session, irc_conf.nick);
+	irc_cmd_nick(irc_session, gpirc_conf.nick);
 }
 
 static void print_topic_who_time(const char *chan,
@@ -580,6 +577,23 @@ static void event_numeric(irc_session_t *session, unsigned int event,
 	}
 }
 
+static void cmd_connect(gp_widget *self, const char *pars)
+{
+	if (!pars[0]) {
+		gp_widget_log_append(self, "/connect requires parameter(s)");
+		return;
+	}
+
+	if (gpirc_conf.server) {
+		gp_widget_log_append(self, "/coonect already connected");
+		return;
+	}
+
+	gpirc_conf.server = strdup(pars);
+
+	do_connect();
+}
+
 static void cmd_quit(gp_widget *self, const char *pars)
 {
 	if (pars[0]) {
@@ -640,6 +654,7 @@ static void cmd_topic(gp_widget *self, const char *pars)
 }
 
 static const char *help[] = {
+	" /connect    - Connects to server",
 	" /help       - Prints this help",
 	" /join #chan - Joins channel #chan",
 	" /quit       - Quits",
@@ -661,6 +676,7 @@ static struct cmd {
 	const char *cmd;
 	void (*cmd_run)(gp_widget *self, const char *pars);
 } cmds[] = {
+	{"connect", cmd_connect},
 	{"help", cmd_help},
 	{"join", cmd_join},
 	{"quit", cmd_quit},
@@ -727,11 +743,11 @@ static void cmd_channel(gp_widget *self, const char *cmd)
 	}
 
 	struct channel *channel = self->priv;
-	struct irc_conf *irc_conf = irc_get_ctx(irc_session);
+	struct gpirc_conf *conf = irc_get_ctx(irc_session);
 
 	irc_cmd_msg(irc_session, channel->name, cmd);
 
-	channels_printf(channel->name, "<%s> %s", irc_conf->nick, cmd);
+	channels_printf(channel->name, "<%s> %s", conf->nick, cmd);
 }
 
 int cmdline(gp_widget_event *ev)
@@ -765,21 +781,6 @@ static irc_callbacks_t callbacks = {
 	.event_numeric = event_numeric,
 };
 
-static char *get_user_name(void)
-{
-	struct passwd *pw;
-	char *ret;
-
-	pw = getpwuid(getuid());
-
-	ret = strdup(pw->pw_name);
-
-	if (!ret)
-		return "unknown";
-
-	return ret;
-}
-
 int main(int argc, char *argv[])
 {
 	gp_htable *uids;
@@ -787,8 +788,6 @@ int main(int argc, char *argv[])
 
 	if (!layout)
 		return 1;
-
-	irc_conf.nick = get_user_name();
 
 	status_log = gp_widget_by_uid(uids, "status_log", GP_WIDGET_LOG);
 	channel_tabs = gp_widget_by_uid(uids, "channel_tabs", GP_WIDGET_TABS);
@@ -806,7 +805,9 @@ int main(int argc, char *argv[])
 	if (!irc_session)
 		return 1;
 
-	irc_set_ctx(irc_session, &irc_conf);
+	gpirc_conf_load(status_log);
+
+	irc_set_ctx(irc_session, &gpirc_conf);
 	do_connect();
 	gp_widgets_main_loop(layout, "gpirc", NULL, argc, argv);
 

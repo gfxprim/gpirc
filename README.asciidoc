@@ -3,6 +3,24 @@ IRC Client
 
 An IRC client written using libircclient and gfxprim widgets.
 
+Configuration file
+==================
+
+Configuration file is stored in "$HOME/.config/gpirc/config.json" example:
+
+[source,json]
+--------------------------------------------------------------------------
+{
+ "server": "irc.libera.chat",
+ "port": 6667,
+ "nick": "cool_nickname",
+ "channels": [
+  {"name": "#foo"},
+  {"name": "#bar", "password": "super-secret-password"}
+ ]
+}
+--------------------------------------------------------------------------
+
 Current status
 ==============
 
