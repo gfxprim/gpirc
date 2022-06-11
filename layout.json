@@ -1,14 +1,15 @@
 {
  "version": 1,
- "rows": 3,
+ "rows": 4,
  "align": "fill",
- "rfill": "0, 1, 0",
+ "rfill": "0, 1, 0, 0",
  "widgets": [
-  {"widgets": [{"type": "label", "text": "gpirc", "align": "hfill", "uid": "topic", "tattr": "left|mono"}], "halign": "fill", "frame": true, "border": "horiz"},
+  {"type": "label", "text": "gpirc", "align": "hfill", "uid": "topic", "bg_color": "highlight", "width": 8, "padd": 1, "tattr": "left|mono"},
   {"type": "tabs", "uid": "channel_tabs", "labels": ["status"], "align": "fill",
    "widgets": [
     {"type": "log", "align": "fill", "uid": "status_log", "tattr": "mono"}
    ]},
+  {"type": "label", "text": "# Status bar", "align": "hfill", "uid": "status", "bg_color": "highlight", "padd": 1, "width": 8, "tattr": "left|mono"},
   {"type": "tbox", "text": "", "align": "hfill", "on_event": "cmdline"}
  ]
 }
