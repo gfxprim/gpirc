@@ -6,8 +6,8 @@
 
  */
 
-#include <libircclient/libircclient.h>
-#include <libircclient/libirc_rfcnumeric.h>
+#include <libircclient.h>
+#include <libirc_rfcnumeric.h>
 #include <utils/gp_vec.h>
 #include <utils/gp_vec_str.h>
 #include <widgets/gp_widgets.h>

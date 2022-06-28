@@ -1,4 +1,4 @@
-CFLAGS=-W -Wall -Wextra -O2 $(shell gfxprim-config --cflags)
+CFLAGS=-W -Wall -Wextra -O2 $(shell gfxprim-config --cflags) -I/usr/include/libircclient/
 LDLIBS=$(shell gfxprim-config --libs-widgets) -lgfxprim -lircclient
 BIN=gpirc
 DEP=$(BIN:=.dep)
