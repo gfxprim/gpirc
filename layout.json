@@ -11,7 +11,7 @@
      {"type": "log", "align": "fill", "uid": "status_log", "tattr": "mono"}
     ]},
    {"type": "label", "text": "# Status bar", "align": "hfill", "uid": "status", "bg_color": "highlight", "padd": 1, "width": 8, "tattr": "left|mono"},
-   {"type": "tbox", "text": "", "align": "hfill", "on_event": "cmdline"}
+   {"type": "tbox", "text": "", "align": "hfill", "on_event": "cmdline", "focused": true}
   ]
  }
 }
