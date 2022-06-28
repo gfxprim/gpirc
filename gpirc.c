@@ -7,7 +7,6 @@
  */
 
 #include <libircclient.h>
-#include <libirc_rfcnumeric.h>
 #include <utils/gp_vec.h>
 #include <utils/gp_vec_str.h>
 #include <widgets/gp_widgets.h>
@@ -420,16 +419,27 @@ static uint32_t poll_irc(gp_timer *self)
 {
 	fd_set in_set;
 	fd_set out_set;
-	int maxfd;
+	int maxfd, err;
 	struct timeval t = {};
 
 	(void) self;
 
+	if (!irc_is_connected(irc_session)) {
+		status_log_printf("Connection failed: %s", irc_strerror(irc_errno(irc_session)));
+		irc_disconnect(irc_session);
+		return GP_TIMER_PERIOD_STOP;
+	}
+
 	FD_ZERO(&in_set);
 	FD_ZERO(&out_set);
-	irc_add_select_descriptors(irc_session, &in_set, &out_set, &maxfd);
+
+	err = irc_add_select_descriptors(irc_session, &in_set, &out_set, &maxfd);
+	if (err)
+		return 0;
+
 	if (select(maxfd+1, &in_set, &out_set, NULL, &t) <= 0)
 		return 0;
+
 	irc_process_select_descriptors(irc_session, &in_set, &out_set);
 
 	return 0;
@@ -443,7 +453,7 @@ static gp_timer poll_timer = {
 
 static void do_connect(void)
 {
-	int ret;
+	int err;
 
 	if (!gpirc_conf.server)
 		return;
@@ -451,13 +461,13 @@ static void do_connect(void)
 	status_log_printf("Connecting as %s to %s port %i",
 	                  gpirc_conf.nick, gpirc_conf.server, gpirc_conf.port);
 
-	ret = irc_connect(irc_session, gpirc_conf.server, gpirc_conf.port, 0, gpirc_conf.nick, 0, 0);
-	if (!ret) {
+	err = irc_connect(irc_session, gpirc_conf.server, gpirc_conf.port, 0, gpirc_conf.nick, 0, 0);
+	if (!err) {
 		gp_widgets_timer_ins(&poll_timer);
 		return;
 	}
 
-	gp_widget_log_append(status_log, "connection failed");
+	status_log_printf("Connection failed: %s", irc_strerror(irc_errno(irc_session)));
 }
 
 static int str_append(char **str, const char *suf)
@@ -584,12 +594,8 @@ static void cmd_connect(gp_widget *self, const char *pars)
 		return;
 	}
 
-	if (gpirc_conf.server) {
-		gp_widget_log_append(self, "/coonect already connected");
-		return;
-	}
-
-	gpirc_conf.server = strdup(pars);
+	if (gpirc_conf_conn_set(&gpirc_conf, pars, 0))
+		gp_widget_log_append(self, "/connect failed to set serever");
 
 	do_connect();
 }
@@ -641,6 +647,20 @@ static void cmd_join(gp_widget *self, const char *pars)
 	channels_join(chan, pass);
 }
 
+static void cmd_nick(gp_widget *self, const char *pars)
+{
+	if (!pars[0]) {
+		gp_widget_log_append(self, "/nick requires a parameter");
+		return;
+	}
+
+	if (gpirc_conf_nick_set(&gpirc_conf, pars))
+		gp_widget_log_append(self, "/nick failed to set nick");
+
+	if (irc_is_connected(irc_session))
+		irc_cmd_nick(irc_session, gpirc_conf.nick);
+}
+
 static void cmd_topic(gp_widget *self, const char *pars)
 {
 	struct channel *channel = self->priv;
@@ -657,6 +677,7 @@ static const char *help[] = {
 	" /connect    - Connects to server",
 	" /help       - Prints this help",
 	" /join #chan - Joins channel #chan",
+	" /nick nick  - Sets nickname",
 	" /quit       - Quits",
 	" /topic      - Sets channel topic",
 	" /wc         - Closes this window"
@@ -679,6 +700,7 @@ static struct cmd {
 	{"connect", cmd_connect},
 	{"help", cmd_help},
 	{"join", cmd_join},
+	{"nick", cmd_nick},
 	{"quit", cmd_quit},
 	{"topic", cmd_topic},
 	{"wc", cmd_wc},

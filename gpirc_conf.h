@@ -27,4 +27,8 @@ extern struct gpirc_conf gpirc_conf;
 
 int gpirc_conf_load(gp_widget *status_log);
 
+int gpirc_conf_conn_set(struct gpirc_conf *self, const char *server, int port);
+
+int gpirc_conf_nick_set(struct gpirc_conf *self, const char *nick);
+
 #endif /* GPIRC_CONF_H__ */

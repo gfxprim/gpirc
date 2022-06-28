@@ -89,16 +89,12 @@ enum conf_keys {
 static char *get_user_name(void)
 {
 	struct passwd *pw;
-	char *ret;
 
 	pw = getpwuid(getuid());
+	if (!pw)
+		return NULL;
 
-	ret = strdup(pw->pw_name);
-
-	if (!ret)
-		return "unknown";
-
-	return ret;
+	return strdup(pw->pw_name);
 }
 
 int gpirc_conf_load(gp_widget *status_log)
@@ -123,7 +119,10 @@ int gpirc_conf_load(gp_widget *status_log)
 	json = gp_json_load(conf_path);
 	if (!json) {
 		if (errno == ENOENT) {
+			gp_widget_log_append(status_log, "Config file not present");
 			gpirc_conf.nick = get_user_name();
+			if (!gpirc_conf.nick)
+				return 1;
 			return 0;
 		}
 
@@ -156,8 +155,40 @@ int gpirc_conf_load(gp_widget *status_log)
 	gp_json_free(json);
 	free(conf_path);
 
-	if (!gpirc_conf.nick)
+	if (!gpirc_conf.nick) {
 		gpirc_conf.nick = get_user_name();
+		if (!gpirc_conf.nick)
+			return 1;
+	}
 
 	return err;
+}
+
+int gpirc_conf_conn_set(struct gpirc_conf *self, const char *server, int port)
+{
+	char *tmp = strdup(server);
+
+	if (!tmp)
+		return 1;
+
+	free(self->server);
+
+	self->server = tmp;
+	if (port)
+		self->port = port;
+
+	return 0;
+}
+
+int gpirc_conf_nick_set(struct gpirc_conf *self, const char *nick)
+{
+	char *tmp = strdup(nick);
+
+	if (!nick)
+		return 1;
+
+	free(self->nick);
+	self->nick = tmp;
+
+	return 0;
 }
