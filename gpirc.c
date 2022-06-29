@@ -794,6 +794,42 @@ int cmdline(gp_widget_event *ev)
 	return 1;
 }
 
+static int app_input_ev(gp_event *ev)
+{
+	if (ev->type != GP_EV_KEY || ev->code != GP_EV_KEY_DOWN)
+		return 0;
+
+	if (!gp_event_any_key_pressed(ev, GP_KEY_LEFT_ALT, GP_KEY_RIGHT_ALT))
+		return 0;
+
+	switch (ev->val) {
+	case GP_KEY_LEFT:
+		gp_widget_tabs_active_set_rel(channel_tabs, -1, 1);
+	break;
+	case GP_KEY_RIGHT:
+		gp_widget_tabs_active_set_rel(channel_tabs, 1, 1);
+	break;
+	default:
+		return 0;
+	}
+
+	return 1;
+}
+
+static int app_on_event(gp_widget_event *ev)
+{
+	switch (ev->type) {
+	case GP_WIDGET_EVENT_FREE:
+		//TODO: Any cleanup?
+	break;
+	case GP_WIDGET_EVENT_INPUT:
+		return app_input_ev(ev->input_ev);
+	break;
+	}
+
+	return 0;
+}
+
 static irc_callbacks_t callbacks = {
 	.event_connect = event_connect,
 	.event_join = event_join,
@@ -811,6 +847,9 @@ int main(int argc, char *argv[])
 
 	if (!layout)
 		return 1;
+
+	gp_app_event_unmask(GP_WIDGET_EVENT_INPUT);
+	gp_app_on_event_set(app_on_event);
 
 	status_log = gp_widget_by_uid(uids, "status_log", GP_WIDGET_LOG);
 	channel_tabs = gp_widget_by_uid(uids, "channel_tabs", GP_WIDGET_TABS);
