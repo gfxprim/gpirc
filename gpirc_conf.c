@@ -132,7 +132,7 @@ int gpirc_conf_load(gp_widget *status_log)
 	gp_widget_log_append(status_log, "Loading config file");
 
 	json->print_priv = status_log;
-	json->print = gp_widget_log_append;
+	json->print = (void*)gp_widget_log_append;
 
 	GP_JSON_OBJ_FILTER(json, &val, &conf_obj_filter, NULL) {
 		switch (val.idx) {
