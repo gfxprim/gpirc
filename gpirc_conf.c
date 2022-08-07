@@ -31,7 +31,7 @@ enum chan_keys {
 	PASSWORD
 };
 
-static void parse_channel(gp_json_buf *json, gp_json_val *val)
+static void parse_channel(gp_json_reader *json, gp_json_val *val)
 {
 	struct gpirc_chan chan;
 
@@ -54,7 +54,7 @@ static void parse_channel(gp_json_buf *json, gp_json_val *val)
 	GP_VEC_APPEND(gpirc_conf.chans, chan);
 }
 
-static void parse_channels(gp_json_buf *json, gp_json_val *val)
+static void parse_channels(gp_json_reader *json, gp_json_val *val)
 {
 	GP_JSON_ARR_FOREACH(json, val) {
 		switch (val->type) {
@@ -101,7 +101,7 @@ int gpirc_conf_load(gp_widget *status_log)
 {
 	char *conf_path;
 	int err;
-	gp_json_buf *json;
+	gp_json_reader *json;
 	char buf[128];
 	gp_json_val val = {
 		.buf = buf,
@@ -116,7 +116,7 @@ int gpirc_conf_load(gp_widget *status_log)
 	if (!conf_path)
 		return 1;
 
-	json = gp_json_load(conf_path);
+	json = gp_json_reader_load(conf_path);
 	if (!json) {
 		if (errno == ENOENT) {
 			gp_widget_log_append(status_log, "Config file not present");
@@ -131,8 +131,8 @@ int gpirc_conf_load(gp_widget *status_log)
 
 	gp_widget_log_append(status_log, "Loading config file");
 
-	json->print_priv = status_log;
-	json->print = (void*)gp_widget_log_append;
+	json->err_print_priv = status_log;
+	json->err_print = (void*)gp_widget_log_append;
 
 	GP_JSON_OBJ_FILTER(json, &val, &conf_obj_filter, NULL) {
 		switch (val.idx) {
@@ -151,13 +151,13 @@ int gpirc_conf_load(gp_widget *status_log)
 		}
 	}
 
-	err = gp_json_is_err(json);
+	err = gp_json_reader_err(json);
 	if (err)
 		gp_json_err_print(json);
 	else if (!gp_json_empty(json))
 		gp_json_warn(json, "Garbage after JSON string!");
 
-	gp_json_free(json);
+	gp_json_reader_free(json);
 	free(conf_path);
 
 	if (!gpirc_conf.nick) {
