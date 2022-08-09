@@ -26,4 +26,5 @@ Current status
 
 Work-in-progress most of the basic stuff works though.
 
-image::https://raw.githubusercontent.com/gfxprim/gpirc/master/gpirc.png["Screenshot"]
+image::https://raw.githubusercontent.com/gfxprim/gpirc/master/gpirc-screenshot01.png["Screenshot 01"]
+image::https://raw.githubusercontent.com/gfxprim/gpirc/master/gpirc-screenshot02.png["Screenshot 02"]
