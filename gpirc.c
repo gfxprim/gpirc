@@ -840,10 +840,24 @@ static irc_callbacks_t callbacks = {
 	.event_numeric = event_numeric,
 };
 
+static gp_app_info app_info = {
+	.name = "gpirc",
+	.desc = "A simple IRC client",
+	.version = "1.0",
+	.license = "GPL-2.0-or-later",
+	.url = "http://github.com/gfxprim/gpirc",
+	.authors = (gp_app_info_author []) {
+		{.name = "Cyril Hrubis", .email = "metan@ucw.cz", .years = "2022"},
+		{}
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	gp_htable *uids;
 	gp_widget *layout = gp_app_layout_load("gpirc", &uids);
+
+	gp_app_info_set(&app_info);
 
 	if (!layout)
 		return 1;
