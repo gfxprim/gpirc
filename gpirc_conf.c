@@ -8,7 +8,10 @@
 
 #include <pwd.h>
 #include <errno.h>
+#include <string.h>
 #include <widgets/gp_widgets.h>
+#include <utils/gp_json.h>
+#include <utils/gp_app_cfg.h>
 #include <utils/gp_vec.h>
 #include "gpirc_conf.h"
 
@@ -112,7 +115,7 @@ int gpirc_conf_load(gp_widget *status_log)
 	if (!gpirc_conf.chans)
 		return 1;
 
-	conf_path = gp_widget_cfg_path("gpirc", "config.json");
+	conf_path = gp_app_cfg_path("gpirc", "config.json");
 	if (!conf_path)
 		return 1;
 
