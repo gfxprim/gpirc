@@ -6,6 +6,8 @@
 
  */
 
+#include <time.h>
+
 #include <libircclient.h>
 #include <libirc_rfcnumeric.h>
 #include <utils/gp_vec.h>
