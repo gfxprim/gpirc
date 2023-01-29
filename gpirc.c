@@ -801,7 +801,7 @@ static int app_input_ev(gp_event *ev)
 	if (ev->type != GP_EV_KEY || ev->code != GP_EV_KEY_DOWN)
 		return 0;
 
-	if (!gp_event_any_key_pressed(ev, GP_KEY_LEFT_ALT, GP_KEY_RIGHT_ALT))
+	if (!gp_ev_any_key_pressed(ev, GP_KEY_LEFT_ALT, GP_KEY_RIGHT_ALT))
 		return 0;
 
 	switch (ev->val) {
