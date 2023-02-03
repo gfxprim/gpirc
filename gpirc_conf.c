@@ -19,54 +19,23 @@ struct gpirc_conf gpirc_conf = {
 	.port = 6667,
 };
 
-static gp_json_obj_attr chan_attrs[] = {
-	GP_JSON_OBJ_ATTR("name", GP_JSON_STR),
-	GP_JSON_OBJ_ATTR("password", GP_JSON_STR)
+struct gp_json_struct chan_desc[] = {
+	GP_JSON_SERDES_STR_DUP(struct gpirc_chan, chan, 0, 1024, "name"),
+	GP_JSON_SERDES_STR_DUP(struct gpirc_chan, pass, GP_JSON_SERDES_OPTIONAL, 1024, "password"),
+	{}
 };
-
-static gp_json_obj chan_obj_filter = {
-	.attrs = chan_attrs,
-	.attr_cnt = GP_ARRAY_SIZE(chan_attrs),
-};
-
-enum chan_keys {
-	NAME,
-	PASSWORD
-};
-
-static void parse_channel(gp_json_reader *json, gp_json_val *val)
-{
-	struct gpirc_chan chan;
-
-	GP_JSON_OBJ_FILTER(json, val, &chan_obj_filter, NULL) {
-		switch (val->idx) {
-		case NAME:
-			chan.chan = strdup(val->val_str);
-		break;
-		case PASSWORD:
-			chan.pass = strdup(val->val_str);
-		break;
-		}
-	}
-
-	if (!chan.chan) {
-		gp_json_err(json, "Channel name missing");
-		return;
-	}
-
-	GP_VEC_APPEND(gpirc_conf.chans, chan);
-}
 
 static void parse_channels(gp_json_reader *json, gp_json_val *val)
 {
 	GP_JSON_ARR_FOREACH(json, val) {
-		switch (val->type) {
-		case GP_JSON_OBJ:
-			parse_channel(json, val);
-		break;
-		default:
+		struct gpirc_chan chan = {};
+
+		if (gp_json_read_struct(json, val, chan_desc, &chan)) {
 			gp_json_err(json, "Expected {\"name\": \"#chan-name\"} object");
+			continue;
 		}
+
+		GP_VEC_APPEND(gpirc_conf.chans, chan);
 	}
 }
 
