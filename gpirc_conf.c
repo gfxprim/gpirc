@@ -72,7 +72,6 @@ static char *get_user_name(void)
 int gpirc_conf_load(gp_widget *status_log)
 {
 	char *conf_path;
-	int err;
 	gp_json_reader *json;
 	char buf[128];
 	gp_json_val val = {
@@ -123,12 +122,8 @@ int gpirc_conf_load(gp_widget *status_log)
 		}
 	}
 
-	err = gp_json_reader_err(json);
-	if (err)
-		gp_json_err_print(json);
-	else if (!gp_json_empty(json))
-		gp_json_warn(json, "Garbage after JSON string!");
-
+	int err = gp_json_reader_err(json);
+	gp_json_reader_finish(json);
 	gp_json_reader_free(json);
 	free(conf_path);
 
