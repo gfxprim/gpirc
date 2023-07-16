@@ -430,7 +430,7 @@ static uint32_t poll_irc(gp_timer *self)
 	if (!irc_is_connected(irc_session)) {
 		status_log_printf("Connection failed: %s", irc_strerror(irc_errno(irc_session)));
 		irc_disconnect(irc_session);
-		return GP_TIMER_PERIOD_STOP;
+		return GP_TIMER_STOP;
 	}
 
 	FD_ZERO(&in_set);
@@ -438,14 +438,14 @@ static uint32_t poll_irc(gp_timer *self)
 
 	err = irc_add_select_descriptors(irc_session, &in_set, &out_set, &maxfd);
 	if (err)
-		return 0;
+		return self->period;
 
 	if (select(maxfd+1, &in_set, &out_set, NULL, &t) <= 0)
-		return 0;
+		return self->period;
 
 	irc_process_select_descriptors(irc_session, &in_set, &out_set);
 
-	return 0;
+	return self->period;
 }
 
 static gp_timer poll_timer = {
