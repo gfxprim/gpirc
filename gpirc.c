@@ -91,7 +91,7 @@ static void channels_add(const char *chan_name)
 	if (!channel->nicks)
 		goto err2;
 
-	channel_log = gp_widget_log_new(GP_TATTR_MONO, 80, 25);
+	channel_log = gp_widget_log_new(GP_TATTR_MONO, 80, 25, 1000);
 	if (!channel_log)
 		goto err3;
 
