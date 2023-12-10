@@ -842,7 +842,7 @@ static irc_callbacks_t callbacks = {
 	.event_numeric = event_numeric,
 };
 
-static gp_app_info app_info = {
+gp_app_info app_info = {
 	.name = "gpirc",
 	.desc = "A simple IRC client",
 	.version = "1.0",
@@ -858,8 +858,6 @@ int main(int argc, char *argv[])
 {
 	gp_htable *uids;
 	gp_widget *layout = gp_app_layout_load("gpirc", &uids);
-
-	gp_app_info_set(&app_info);
 
 	if (!layout)
 		return 1;
@@ -887,7 +885,7 @@ int main(int argc, char *argv[])
 
 	irc_set_ctx(irc_session, &gpirc_conf);
 	do_connect();
-	gp_widgets_main_loop(layout, "gpirc", NULL, argc, argv);
+	gp_widgets_main_loop(layout, NULL, argc, argv);
 
 	return 0;
 }
