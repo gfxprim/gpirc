@@ -105,7 +105,7 @@ int gpirc_conf_load(gp_widget *status_log)
 	json->err_print_priv = status_log;
 	json->err_print = (void*)gp_widget_log_append;
 
-	GP_JSON_OBJ_FILTER(json, &val, &conf_obj_filter, NULL) {
+	GP_JSON_OBJ_FOREACH_FILTER(json, &val, &conf_obj_filter, NULL) {
 		switch (val.idx) {
 		case CHANNELS:
 			parse_channels(json, &val);
