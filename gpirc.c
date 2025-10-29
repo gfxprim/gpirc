@@ -466,7 +466,7 @@ static void do_connect(void)
 
 	err = irc_connect(irc_session, gpirc_conf.server, gpirc_conf.port, 0, gpirc_conf.nick, 0, 0);
 	if (!err) {
-		gp_widgets_timer_ins(&poll_timer);
+		gp_app_timer_start(&poll_timer);
 		return;
 	}
 
